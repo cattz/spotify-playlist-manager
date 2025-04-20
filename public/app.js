@@ -16,7 +16,6 @@ document.addEventListener('alpine:init', () => {
     isAuthenticated: false,
     userId: null,
     totalSongs: 0,
-    eventSource: null,
     loading: true,
 
     async init() {
@@ -27,45 +26,47 @@ document.addEventListener('alpine:init', () => {
           return;
         }
         const data = await res.json();
-        if (data.playlists.length > 0) {
-          this.playlists = data.playlists;
-          this.filteredPlaylists = data.playlists;
-          this.userId = data.user_id;
-          this.isAuthenticated = true;
-          this.calculateTotalSongs();
-          this.loading = false;
-        } else {
-          this.startStream();
-        }
+        this.playlists = data.playlists.map(pl => ({
+          ...pl,
+          tracksLoaded: pl.tracksLoaded || false,
+          tracks: []
+        }));
+        this.filteredPlaylists = this.playlists;
+        this.userId = data.user_id;
+        this.isAuthenticated = true;
+        this.calculateTotalSongs();
+        this.loading = false;
       } catch (error) {
         console.error('Error inicial:', error);
       }
     },
 
-    startStream() {
-      this.eventSource = new EventSource('/stream/playlists');
+    loadTracks(playlist) {
+      if (playlist.tracksLoaded) return;
 
-      this.eventSource.onmessage = (event) => {
+      playlist.tracksLoaded = true; // Marcar que ya estamos cargando
+
+      const source = new EventSource(`/stream/tracks/${playlist.id}`);
+
+      source.onmessage = (event) => {
         try {
-          const playlist = JSON.parse(event.data);
-          this.playlists.push(playlist);
-          this.filteredPlaylists.push(playlist);
-          this.calculateTotalSongs();
+          if (event.data) {
+            const track = JSON.parse(event.data);
+            playlist.tracks.push(track);
+          }
         } catch (e) {
-          console.error('Error parsing event data:', e);
+          console.error('Error parsing track data:', e);
         }
       };
 
-      this.eventSource.addEventListener('end', () => {
-        console.log('Stream terminado');
-        this.loading = false;
-        this.eventSource.close();
+      source.addEventListener('end', () => {
+        console.log(`Tracks cargados para playlist: ${playlist.name}`);
+        source.close();
       });
 
-      this.eventSource.onerror = (event) => {
-        console.error('Error en el stream:', event);
-        this.loading = false;
-        this.eventSource.close();
+      source.onerror = (err) => {
+        console.error('Error en stream de tracks:', err);
+        source.close();
       };
     },
 
@@ -118,7 +119,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     calculateTotalSongs() {
-      this.totalSongs = this.filteredPlaylists.reduce((sum, pl) => sum + pl.total_tracks, 0);
+      this.totalSongs = this.filteredPlaylists.reduce((sum, pl) => sum + (pl.total_tracks || 0), 0);
     }
   }));
 });

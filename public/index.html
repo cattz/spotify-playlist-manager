@@ -2,110 +2,106 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Spotify Hashtag Manager v3</title>
-
-  <!-- AlpineJS -->
-  <script src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js" defer></script>
-
-  <!-- TailwindCSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spotify Playlist Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js" defer></script>
+  <script src="/app.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4" x-data="appData" x-init="init">
 
-  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow p-4 text-sm">
+<body class="bg-gray-100 p-4" x-data="appData" x-init="init()">
 
-    <!-- Top Bar -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="space-x-2 flex items-center">
-        <template x-if="!isAuthenticated">
-          <button @click="login()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded">
-            🔑 Login con Spotify
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">🎵 Spotify Playlist Manager</h1>
+
+    <!-- Botón de Login -->
+    <div class="mb-4" x-show="!isAuthenticated">
+      <button @click="login" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+        Login con Spotify
+      </button>
+    </div>
+
+    <!-- Área principal si está autenticado -->
+    <template x-if="isAuthenticated">
+      <div>
+
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <span class="font-semibold">Playlists cargadas:</span> <span x-text="filteredPlaylists.length"></span> |
+            <span class="font-semibold">Total canciones:</span> <span x-text="totalSongs"></span>
+          </div>
+          <button @click="logout" class="text-sm text-red-500 underline">
+            Logout
           </button>
-        </template>
-        <template x-if="isAuthenticated">
-          <button @click="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded">
-            🚪 Logout
-          </button>
-        </template>
-      </div>
-      
-      <!-- Resumen -->
-      <div class="text-right">
-        <div>
-          Listas: <span x-text="filteredPlaylists.length"></span> /
-          <span x-text="playlists.length"></span>
         </div>
-        <div>
-          Total canciones: <span x-text="totalSongs"></span>
+
+        <!-- Filtro de búsqueda -->
+        <input type="text" x-model="searchTags" @input="search" placeholder="Filtrar por hashtags..." class="w-full p-2 mb-4 border rounded">
+
+        <!-- Listado de playlists -->
+        <div class="grid grid-cols-1 gap-4">
+          <template x-for="pl in filteredPlaylists" :key="pl.id">
+            <div class="bg-white p-4 rounded shadow hover:bg-gray-50 transition">
+
+              <div class="flex justify-between items-center">
+                <div>
+                  <h2 class="text-lg font-bold cursor-pointer" @click="pl.showTracks = !pl.showTracks" x-text="pl.name"></h2>
+                  <p class="text-sm text-gray-600" x-text="pl.description"></p>
+                  <p class="text-sm mt-2" x-show="pl.tracks && pl.tracks.length > 0">
+                    Canciones cargadas: <span x-text="pl.tracks.length"></span>
+                  </p>
+                </div>
+
+                <div>
+                  <button 
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                    @click="loadTracks(pl)"
+                    x-show="!pl.tracksLoaded"
+                  >
+                    Cargar canciones
+                  </button>
+                  <button 
+                    class="bg-green-500 text-white px-3 py-1 rounded text-sm"
+                    disabled
+                    x-show="pl.tracksLoaded"
+                  >
+                    Cargando...
+                  </button>
+                </div>
+              </div>
+
+              <!-- Expandir canciones -->
+              <div x-show="pl.showTracks" class="mt-4">
+                <template x-if="pl.tracks.length === 0">
+                  <p class="text-gray-500 text-sm">No hay canciones cargadas todavía.</p>
+                </template>
+
+                <ul class="list-disc pl-6" x-show="pl.tracks.length > 0">
+                  <template x-for="track in pl.tracks" :key="track.name">
+                    <li class="text-sm">
+                      <span x-text="track.name"></span> - 
+                      <span class="text-gray-500" x-text="track.artists.join(', ')"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+
+            </div>
+          </template>
         </div>
+
       </div>
-    </div>
+    </template>
 
-    <!-- Filtros arriba -->
-    <div class="flex items-center space-x-4 mb-4">
-      <input type="checkbox" x-model="onlyMine" @change="applyFilters()">
-      <label>Solo mis listas</label>
-
-      <input type="text" x-model="searchTags" placeholder="#hashtag1 #hashtag2" class="border p-1 rounded w-1/2">
-      
-      <select x-model="searchMode" class="border p-1 rounded">
-        <option value="or">OR</option>
-        <option value="and">AND</option>
-      </select>
-
-      <button @click="search()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Buscar</button>
-      <button @click="clearSearch()" class="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded">Limpiar</button>
-    </div>
-
-    <!-- Tabs -->
-    <div class="flex space-x-4 mb-4">
-      <button class="px-4 py-1 rounded"
-              :class="tab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'"
-              @click="tab = 'all'">📋 Todas las listas</button>
-      <button class="px-4 py-1 rounded"
-              :class="tab === 'tags' ? 'bg-blue-500 text-white' : 'bg-gray-200'"
-              @click="tab = 'tags'">🏷️ Filtrar por hashtags</button>
-    </div>
-
-    <!-- Tabla de playlists -->
-    <div class="overflow-x-auto">
-      <template x-if="tab === 'all' || tab === 'tags'">
-        <table class="min-w-full text-sm">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="px-2 py-1">Portada</th>
-              <th class="px-2 py-1">Nombre</th>
-              <th class="px-2 py-1"># Canciones</th>
-              <th class="px-2 py-1">Duración</th>
-              <th class="px-2 py-1">Última Adición</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="pl in filteredPlaylists" :key="pl.id">
-              <tr class="hover:bg-gray-100">
-                <td class="px-2 py-1">
-                  <template x-if="pl.images && pl.images.length > 0">
-                    <img :src="pl.images[0].url" alt="" class="w-10 h-10 rounded" />
-                  </template>
-                  <template x-if="!pl.images || pl.images.length === 0">
-                    <div class="w-10 h-10 bg-gray-300 flex items-center justify-center rounded text-gray-600">
-                      N/A
-                    </div>
-                  </template>
-                </td>
-                <td class="px-2 py-1" x-text="pl.name"></td>
-                <td class="px-2 py-1" x-text="pl.total_tracks"></td>
-                <td class="px-2 py-1" x-text="formatDuration(pl.total_duration_ms)"></td>
-                <td class="px-2 py-1" x-text="pl.last_added_at"></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
-      </template>
-    </div>
+    <!-- Cargando -->
+    <template x-if="loading">
+      <div class="text-center text-gray-500 mt-8">
+        Cargando playlists...
+      </div>
+    </template>
 
   </div>
 
-  <script src="app.js"></script>
 </body>
 </html>

@@ -52,20 +52,91 @@ app.get('/logout', (req, res) => {
 });
 
 // API normal (carga rápida desde SQLite)
+// Cargar solo playlists, sin tracks
 app.get('/api/playlists', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'No autorizado' });
 
   try {
-    const playlistsFromDB = await db.getAllPlaylists();
+    const allPlaylists = [];
+    let url = 'https://api.spotify.com/v1/me/playlists';
+
+    while (url) {
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${req.user.accessToken}` }
+      });
+
+      allPlaylists.push(...response.data.items);
+      url = response.data.next;
+
+      if (url) await sleep(200);
+    }
+
+    const simplified = allPlaylists.map(pl => ({
+      id: pl.id,
+      name: pl.name,
+      description: pl.description || '',
+      images: pl.images || [],
+      total_tracks: pl.tracks.total,
+      tracksLoaded: false, // 🔥 nuevo campo
+      owner_id: pl.owner.id
+    }));
+
     res.json({
-      playlists: playlistsFromDB,
+      playlists: simplified,
       user_id: req.user.user_id
     });
+
   } catch (error) {
     console.error(error.message);
-    res.status(500).json({ error: 'Error al leer base de datos' });
+    res.status(500).json({ error: 'Error al obtener playlists' });
   }
 });
+// Streaming tracks de una sola playlist
+app.get('/stream/tracks/:playlistId', async (req, res) => {
+  if (!req.user) {
+    res.status(401).end();
+    return;
+  }
+
+  const playlistId = req.params.playlistId;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  try {
+    const tracksRes = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+      headers: { Authorization: `Bearer ${req.user.accessToken}` }
+    });
+
+    for (const item of tracksRes.data.items) {
+      if (item.track) {
+        const trackInfo = {
+          name: item.track.name,
+          duration_ms: item.track.duration_ms,
+          added_at: item.added_at,
+          artists: item.track.artists.map(a => a.name)
+        };
+
+        res.write(`data: ${JSON.stringify(trackInfo)}\n\n`);
+      }
+
+      await sleep(100); // 🔥 dormir un poco entre tracks
+    }
+
+    res.write('event: end\ndata: done\n\n');
+    res.end();
+
+  } catch (error) {
+    console.error(error.message);
+    res.write(`event: error\ndata: ${JSON.stringify(error.message)}\n\n`);
+    res.end();
+  }
+});
+
+
 
 // STREAM de playlists con SSE
 app.get('/stream/playlists', async (req, res) => {
