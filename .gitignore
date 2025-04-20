@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+
+# Entornos
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sistema
+.DS_Store
+
+# Visual Studio Code settings
+.vscode/
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Build o carpetas generadas (si usas en el futuro)
+dist/
+build/
+
+playlists.db

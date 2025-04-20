@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Spotify Hashtag Manager v3</title>
+
+  <!-- AlpineJS -->
+  <script src="https://unpkg.com/alpinejs@3.13.1/dist/cdn.min.js" defer></script>
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4" x-data="appData" x-init="init">
+
+  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow p-4 text-sm">
+
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="space-x-2 flex items-center">
+        <template x-if="!isAuthenticated">
+          <button @click="login()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded">
+            🔑 Login con Spotify
+          </button>
+        </template>
+        <template x-if="isAuthenticated">
+          <button @click="logout()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded">
+            🚪 Logout
+          </button>
+        </template>
+      </div>
+      
+      <!-- Resumen -->
+      <div class="text-right">
+        <div>
+          Listas: <span x-text="filteredPlaylists.length"></span> /
+          <span x-text="playlists.length"></span>
+        </div>
+        <div>
+          Total canciones: <span x-text="totalSongs"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros arriba -->
+    <div class="flex items-center space-x-4 mb-4">
+      <input type="checkbox" x-model="onlyMine" @change="applyFilters()">
+      <label>Solo mis listas</label>
+
+      <input type="text" x-model="searchTags" placeholder="#hashtag1 #hashtag2" class="border p-1 rounded w-1/2">
+      
+      <select x-model="searchMode" class="border p-1 rounded">
+        <option value="or">OR</option>
+        <option value="and">AND</option>
+      </select>
+
+      <button @click="search()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Buscar</button>
+      <button @click="clearSearch()" class="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded">Limpiar</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex space-x-4 mb-4">
+      <button class="px-4 py-1 rounded"
+              :class="tab === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-200'"
+              @click="tab = 'all'">📋 Todas las listas</button>
+      <button class="px-4 py-1 rounded"
+              :class="tab === 'tags' ? 'bg-blue-500 text-white' : 'bg-gray-200'"
+              @click="tab = 'tags'">🏷️ Filtrar por hashtags</button>
+    </div>
+
+    <!-- Tabla de playlists -->
+    <div class="overflow-x-auto">
+      <template x-if="tab === 'all' || tab === 'tags'">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="px-2 py-1">Portada</th>
+              <th class="px-2 py-1">Nombre</th>
+              <th class="px-2 py-1"># Canciones</th>
+              <th class="px-2 py-1">Duración</th>
+              <th class="px-2 py-1">Última Adición</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="pl in filteredPlaylists" :key="pl.id">
+              <tr class="hover:bg-gray-100">
+                <td class="px-2 py-1">
+                  <template x-if="pl.images && pl.images.length > 0">
+                    <img :src="pl.images[0].url" alt="" class="w-10 h-10 rounded" />
+                  </template>
+                  <template x-if="!pl.images || pl.images.length === 0">
+                    <div class="w-10 h-10 bg-gray-300 flex items-center justify-center rounded text-gray-600">
+                      N/A
+                    </div>
+                  </template>
+                </td>
+                <td class="px-2 py-1" x-text="pl.name"></td>
+                <td class="px-2 py-1" x-text="pl.total_tracks"></td>
+                <td class="px-2 py-1" x-text="formatDuration(pl.total_duration_ms)"></td>
+                <td class="px-2 py-1" x-text="pl.last_added_at"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
