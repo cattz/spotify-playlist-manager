@@ -1,44 +1,17 @@
-# 🎵 Spotify Hashtag Manager v2
+# 🎵 Spotify Playlist Manager
 
-Una aplicación web ligera para gestionar tus playlists de Spotify usando hashtags en las descripciones, y explorar tu biblioteca fácilmente.
-
----
-
-## 🚀 Funcionalidades
-
-### 📋 Todas mis listas
-- Tabla que muestra:
-  - Portada 🎵
-  - Nombre
-  - Número de canciones
-  - Duración total (horas y minutos)
-  - Fecha de última adición
-
-### 🏷️ Filtro por hashtags
-- Busca uno o más hashtags (#rock, #gym, etc.)
-- Modos de búsqueda:
-  - OR: al menos un hashtag debe coincidir
-  - AND: todos los hashtags deben coincidir
-- Botón para limpiar filtros.
+Aplicación web ligera para gestionar y explorar tus playlists de Spotify usando hashtags, con carga progresiva de datos en tiempo real (SSE) y almacenamiento local en SQLite.
 
 ---
 
-## 🛠️ Tecnologías usadas
-- Node.js + Express
-- Spotify Web API (OAuth, playlists, tracks)
-- Alpine.js (frontend reactivo)
-- TailwindCSS (estilos modernos)
+## 🚀 Funcionalidades principales
 
----
-
-## 🖥️ Requisitos
-- Node.js instalado en tu máquina.
-- Una cuenta de Spotify Developer con una App creada.
-
----
-
-## 🔧 Instalación
-
-1. Clonar o descomprimir este proyecto.
-
-2. Crear un archivo `.env` en la raíz:
+- 🔑 Login/Logout seguro vía Spotify OAuth2
+- 📋 Visualización de todas tus playlists
+- 🏷️ Filtrado dinámico por hashtags en la descripción de las listas
+- ✅ Filtro rápido: ver sólo playlists creadas por ti
+- 📊 Resumen de número de playlists visibles y total de canciones
+- 📦 Persistencia en base de datos SQLite
+- ⚡ Streaming de playlists en tiempo real (Server-Sent Events)
+- 🎨 Diseño responsive y compacto con TailwindCSS + Alpine.js
+- 🌙 Preparado

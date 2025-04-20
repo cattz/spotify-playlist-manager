@@ -35,7 +35,6 @@ document.addEventListener('alpine:init', () => {
           this.calculateTotalSongs();
           this.loading = false;
         } else {
-          // Si no hay playlists guardadas, empieza a escuchar el stream
           this.startStream();
         }
       } catch (error) {
@@ -53,7 +52,7 @@ document.addEventListener('alpine:init', () => {
           this.filteredPlaylists.push(playlist);
           this.calculateTotalSongs();
         } catch (e) {
-          console.error('Error parsing playlist event', e);
+          console.error('Error parsing event data:', e);
         }
       };
 
@@ -64,12 +63,11 @@ document.addEventListener('alpine:init', () => {
       });
 
       this.eventSource.onerror = (event) => {
-        console.error('Error en stream SSE', event);
-        this.eventSource.close();
+        console.error('Error en el stream:', event);
         this.loading = false;
+        this.eventSource.close();
       };
-    }
-
+    },
 
     formatDuration(ms) {
       return formatMs(ms);
