@@ -29,7 +29,9 @@ document.addEventListener('alpine:init', () => {
         this.playlists = data.playlists.map(pl => ({
           ...pl,
           tracksLoaded: pl.tracksLoaded || false,
-          tracks: []
+          tracks: [],
+          showTracks: false,
+          spotify_url: pl.spotify_url || `https://open.spotify.com/playlist/${pl.id}` // 🔥
         }));
         this.filteredPlaylists = this.playlists;
         this.userId = data.user_id;

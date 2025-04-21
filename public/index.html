@@ -10,91 +10,118 @@
   <script src="/app.js"></script>
 </head>
 
-<body class="bg-gray-100 p-4" x-data="appData" x-init="init()">
+<body class="bg-gray-100 p-2 text-sm" x-data="appData" x-init="init()">
 
-  <div class="max-w-5xl mx-auto">
-    <h1 class="text-2xl font-bold mb-4">🎵 Spotify Playlist Manager</h1>
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-xl font-bold mb-2">🎵 Spotify Playlist Manager</h1>
 
-    <!-- Botón de Login -->
-    <div class="mb-4" x-show="!isAuthenticated">
-      <button @click="login" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+    <!-- Login -->
+    <div x-show="!isAuthenticated" class="mb-4">
+      <button @click="login" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">
         Login con Spotify
       </button>
     </div>
 
-    <!-- Área principal si está autenticado -->
+    <!-- Área principal -->
     <template x-if="isAuthenticated">
       <div>
 
-        <div class="flex justify-between items-center mb-4">
-          <div>
-            <span class="font-semibold">Playlists cargadas:</span> <span x-text="filteredPlaylists.length"></span> |
-            <span class="font-semibold">Total canciones:</span> <span x-text="totalSongs"></span>
+        <div class="flex flex-wrap justify-between items-center mb-2">
+          <div class="space-x-4">
+            <span><b>Playlists:</b> <span x-text="filteredPlaylists.length"></span></span>
+            <span><b>Canciones:</b> <span x-text="totalSongs"></span></span>
           </div>
-          <button @click="logout" class="text-sm text-red-500 underline">
+          <button @click="logout" class="text-red-500 text-xs underline">
             Logout
           </button>
         </div>
 
-        <!-- Filtro de búsqueda -->
-        <input type="text" x-model="searchTags" @input="search" placeholder="Filtrar por hashtags..." class="w-full p-2 mb-4 border rounded">
+        <!-- Filtro -->
+        <div class="flex items-center mb-4 space-x-2">
+          <input type="text" x-model="searchTags" @input="search" placeholder="Filtrar por hashtags..." class="flex-1 border rounded p-1" />
+          <button @click="clearSearch" class="bg-gray-300 hover:bg-gray-400 text-black px-2 py-1 rounded text-xs">
+            Limpiar
+          </button>
+        </div>
 
-        <!-- Listado de playlists -->
-        <div class="grid grid-cols-1 gap-4">
-          <template x-for="pl in filteredPlaylists" :key="pl.id">
-            <div class="bg-white p-4 rounded shadow hover:bg-gray-50 transition">
+        <!-- Tabla -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white rounded shadow">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr class="text-left">
+                <th class="p-2">Nombre</th>
+                <th class="p-2">Descripción</th>
+                <th class="p-2 text-center"># Canciones</th>
+                <th class="p-2 text-center">Última canción</th>
+                <th class="p-2 text-center">Spotify</th> <!-- 🔥 Nueva columna -->
+                <th class="p-2 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="pl in filteredPlaylists" :key="pl.id">
+                <tr class="border-t hover:bg-gray-50">
+                  <td class="p-2 cursor-pointer" @click="pl.showTracks = !pl.showTracks">
+                    <span x-text="pl.name"></span>
+                  </td>
+                  <td class="p-2">
+                    <span x-text="pl.description"></span>
+                  </td>
+                  <td class="p-2 text-center">
+                    <span x-text="pl.total_tracks"></span>
+                  </td>
+                  <td class="p-2 text-center">
+                    <span x-text="pl.last_added_at || '-'"></span>
+                  </td>
+                  <td class="p-2 text-center">
+                    <!-- 🔗 Enlace a Spotify -->
+                    <a :href="pl.spotify_url" target="_blank" class="text-blue-500 hover:underline text-lg">
+                      🔗
+                    </a>
+                  </td>
+                  <td class="p-2 text-center">
+                    <button 
+                      class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                      @click="loadTracks(pl)"
+                      x-show="!pl.tracksLoaded"
+                    >
+                      Cargar canciones
+                    </button>
+                    <button 
+                      class="bg-green-500 text-white px-2 py-1 rounded text-xs"
+                      disabled
+                      x-show="pl.tracksLoaded"
+                    >
+                      Cargando...
+                    </button>
+                  </td>
+                </tr>
 
-              <div class="flex justify-between items-center">
-                <div>
-                  <h2 class="text-lg font-bold cursor-pointer" @click="pl.showTracks = !pl.showTracks" x-text="pl.name"></h2>
-                  <p class="text-sm text-gray-600" x-text="pl.description"></p>
-                  <p class="text-sm mt-2" x-show="pl.tracks && pl.tracks.length > 0">
-                    Canciones cargadas: <span x-text="pl.tracks.length"></span>
-                  </p>
-                </div>
 
-                <div>
-                  <button 
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                    @click="loadTracks(pl)"
-                    x-show="!pl.tracksLoaded"
-                  >
-                    Cargar canciones
-                  </button>
-                  <button 
-                    class="bg-green-500 text-white px-3 py-1 rounded text-sm"
-                    disabled
-                    x-show="pl.tracksLoaded"
-                  >
-                    Cargando...
-                  </button>
-                </div>
-              </div>
-
-              <!-- Expandir canciones -->
-              <div x-show="pl.showTracks" class="mt-4">
-                <template x-if="pl.tracks.length === 0">
-                  <p class="text-gray-500 text-sm">No hay canciones cargadas todavía.</p>
-                </template>
-
-                <ul class="list-disc pl-6" x-show="pl.tracks.length > 0">
-                  <template x-for="track in pl.tracks" :key="track.name">
-                    <li class="text-sm">
-                      <span x-text="track.name"></span> - 
-                      <span class="text-gray-500" x-text="track.artists.join(', ')"></span>
-                    </li>
-                  </template>
-                </ul>
-              </div>
-
-            </div>
-          </template>
+                <!-- Expand canciones -->
+                <tr x-show="pl.showTracks">
+                  <td colspan="5" class="p-2 bg-gray-50">
+                    <template x-if="pl.tracks.length === 0">
+                      <p class="text-gray-500 text-xs">No hay canciones cargadas todavía.</p>
+                    </template>
+                    <ul class="list-disc ml-6" x-show="pl.tracks.length > 0">
+                      <template x-for="track in pl.tracks" :key="track.name">
+                        <li class="text-xs">
+                          <span x-text="track.name"></span> - 
+                          <span class="text-gray-500" x-text="track.artists.join(', ')"></span>
+                        </li>
+                      </template>
+                    </ul>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
 
       </div>
     </template>
 
-    <!-- Cargando -->
+    <!-- Loading -->
     <template x-if="loading">
       <div class="text-center text-gray-500 mt-8">
         Cargando playlists...
