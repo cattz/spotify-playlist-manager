@@ -1,1 +1,1 @@
-// Contenido corregido de server.js
+// Aquí iría el contenido completo de server.js

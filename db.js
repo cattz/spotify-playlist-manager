@@ -1,1 +1,1 @@
-// Contenido corregido de db.js
+// Aquí iría el contenido completo de db.js

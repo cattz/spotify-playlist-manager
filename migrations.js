@@ -1,1 +1,1 @@
-// Contenido corregido de migrations.js
+// Aquí iría el contenido completo de migrations.js
